@@ -28,7 +28,7 @@ public class Day01 extends Day {
                 .mapToObj(c -> (char) c)
                 .filter(Character::isDigit)
                 .findFirst()
-                .get();
+                .orElseThrow(() -> new IllegalArgumentException("no digit found"));
     }
 
     private Character getLastDigit(String line) {
@@ -36,7 +36,7 @@ public class Day01 extends Day {
                 .mapToObj(c -> (char) c)
                 .filter(Character::isDigit)
                 .reduce((first, second) -> second)
-                .get();
+                .orElseThrow(() -> new IllegalArgumentException("no digit found"));
     }
 
     @Override
@@ -79,7 +79,7 @@ public class Day01 extends Day {
                 )
                 .filter(i -> i >= 0)
                 .max(Integer::compareTo)
-                .get();
+                .orElseThrow(() -> new IllegalArgumentException("no digit found"));
 
         return getDigitFromFront(StringUtils.substring(line, indexFirstDigit, indexFirstDigit + 5));
     }
@@ -107,7 +107,7 @@ public class Day01 extends Day {
                 )
                 .filter(i -> i >= 0)
                 .min(Integer::compareTo)
-                .get();
+                .orElseThrow(() -> new IllegalArgumentException("no digit found"));
 
         return getDigitFromFront(StringUtils.substring(line, indexFirstDigit, indexFirstDigit + 5));
     }
