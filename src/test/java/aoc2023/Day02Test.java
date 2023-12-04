@@ -12,7 +12,7 @@ class Day02Test {
     void doPart1() throws Exception {
         Day day = getDay();
 
-        assertThat(day.doPart1(day.readInput(getInputFilename()))).isEqualTo("0");
+        assertThat(day.doPart1(day.readInput(getInputFilename()))).isEqualTo("8");
     }
 
     @Test
