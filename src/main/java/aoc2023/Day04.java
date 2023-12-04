@@ -5,8 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static java.util.stream.Collectors.toList;
-
 public class Day04 extends Day {
     @Override
     public String doPart1(List<String> inputRaw) {
