@@ -25,7 +25,7 @@ public class Day02 extends Day {
 
         long result = games.stream()
                 .filter(bag::gamePossible)
-                .map(game -> game.id())
+                .map(Game::id)
                 .reduce(0, Integer::sum);
 
         return String.valueOf(result);
@@ -132,7 +132,7 @@ record Bag(List<Cube> cubes) {
 
     public long power() {
         return cubes().stream()
-                .map(cube -> cube.nr())
+                .map(Cube::nr)
                 .reduce(1, (l1, l2) -> l1 * l2);
     }
 }
