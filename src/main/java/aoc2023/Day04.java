@@ -27,12 +27,6 @@ public class Day04 extends Day {
         return String.valueOf(result);
     }
 
-    private List<Long> parseInput(List<String> inputRaw) {
-        return inputRaw.stream()
-                .map(Long::valueOf)
-                .collect(toList());
-    }
-
     // @formatter:off
     static public void main(String[] args) throws Exception {
         // get our class
