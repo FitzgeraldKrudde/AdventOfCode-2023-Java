@@ -7,6 +7,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 enum Category {
     SEED, SOIL, FERTILIZER, WATER, LIGHT, TEMPERATURE, HUMIDITY, LOCATION
@@ -25,10 +27,10 @@ record CategoryMapper(Category categorySource, Category categoryDestination, Lis
         return optionalRangeMapper.map(rangeMapper -> rangeMapper.findDestination(source)).orElse(source);
     }
 
-    private Optional<RangeMapper> findRangeMapper(double source) {
+    public Optional<RangeMapper> findRangeMapper(long source) {
         return rangeMappers.stream()
                 .filter(rangeMapper -> source >= rangeMapper.sourceRangeStart())
-                .filter(rangeMapper -> source <= rangeMapper.sourceRangeStart() + rangeMapper.rangeLength())
+                .filter(rangeMapper -> source < rangeMapper.sourceRangeStart() + rangeMapper.rangeLength())
                 .findFirst();
     }
 }
@@ -90,6 +92,77 @@ record Almanac(List<Long> seeds, List<CategoryMapper> categoryMappers) {
         }
     }
 
+    public long getLowestLocationForSeedRanges() {
+        List<SeedRange> seedRanges = new ArrayList<>();
+
+        for (int i = 0; i < seeds.size(); i += 2) {
+            seedRanges.add(new SeedRange(seeds.get(i), seeds.get(i + 1)));
+        }
+
+        CategoryMapper categoryMapper = findMapperForSourceCategory(Category.SEED);
+
+        while (categoryMapper.categoryDestination() != Category.LOCATION) {
+            seedRanges = destinationSeedRanges(categoryMapper, seedRanges);
+            categoryMapper = findMapperForSourceCategory(categoryMapper.categoryDestination());
+        }
+
+        seedRanges = destinationSeedRanges(categoryMapper, seedRanges);
+
+        return seedRanges.stream()
+                .map(SeedRange::start)
+                .reduce(Long.MAX_VALUE, Math::min);
+    }
+
+    private List<SeedRange> destinationSeedRanges(CategoryMapper categoryMapper, List<SeedRange> seedRanges) {
+        return seedRanges.stream()
+                .flatMap(seedRange -> destinationRanges(categoryMapper, seedRange))
+                .collect(Collectors.toList());
+    }
+
+    private Stream<SeedRange> destinationRanges(CategoryMapper categoryMapper, SeedRange seedRange) {
+        // split the seed range into multiple parts based on which parts are mapped by a range mapper
+
+        if (seedRange.length() == 0) {
+            return Stream.empty();
+        }
+
+        // find mapper for the start of the seed range
+        Optional<RangeMapper> optionalRangeMapper = categoryMapper.findRangeMapper(seedRange.start());
+        if (optionalRangeMapper.isPresent()) {
+            RangeMapper rangeMapper = optionalRangeMapper.get();
+
+            long destinationSubRangeStart = rangeMapper.findDestination(seedRange.start());
+            long destinationSubRangeLength = Math.min(seedRange.length(), rangeMapper.sourceRangeStart() + rangeMapper.rangeLength() - seedRange.start() - 1);
+
+            SeedRange destinationSubRange = new SeedRange(destinationSubRangeStart, destinationSubRangeLength);
+            SeedRange remainingSeedRange = new SeedRange(seedRange.start() + destinationSubRangeLength + 1, seedRange.length() - destinationSubRangeLength);
+
+            return Stream.concat(Stream.of(destinationSubRange), destinationRanges(categoryMapper, remainingSeedRange));
+        } else {
+            // find next rangemapper AFTER our seedrange start
+            Optional<RangeMapper> optionalNextRangeMapper = categoryMapper.rangeMappers().stream()
+                    .filter(rangeMapper -> rangeMapper.sourceRangeStart() > seedRange.start())
+                    .min((rm1, rm2) -> Math.toIntExact(rm1.sourceRangeStart() - rm2.sourceRangeStart()));
+
+            if (optionalNextRangeMapper.isEmpty()) {
+                return Stream.of(seedRange);
+            } else {
+                RangeMapper nextRangeMapper = optionalNextRangeMapper.get();
+
+                long destinationSubRangeStart = seedRange.start();
+                long destinationSubRangeLength = (Math.min(seedRange.start() + seedRange.length(), nextRangeMapper.sourceRangeStart() - 1)) - seedRange.start();
+
+                SeedRange destinationSubRange = new SeedRange(destinationSubRangeStart, destinationSubRangeLength);
+                SeedRange remainingSeedRange = new SeedRange(seedRange.start() + destinationSubRangeLength + 1, seedRange.length() - destinationSubRangeLength);
+
+                return Stream.concat(Stream.of(destinationSubRange), destinationRanges(categoryMapper, remainingSeedRange));
+            }
+        }
+    }
+}
+
+record SeedRange(long start, long length) {
+
 }
 
 public class Day05 extends Day {
@@ -103,12 +176,11 @@ public class Day05 extends Day {
 
     @Override
     public String doPart2(List<String> inputRaw) {
-//        List<Long> input = parseInput(inputRaw);
+        Almanac almanac = Almanac.of(inputRaw);
 
+        long locationForSeed = almanac.getLowestLocationForSeedRanges();
 
-        long result = 0;
-
-        return String.valueOf(result);
+        return String.valueOf(locationForSeed);
     }
 
     // @formatter:off
